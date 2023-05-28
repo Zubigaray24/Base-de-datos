@@ -101,3 +101,80 @@ WHERE extract(year FROM AGE(e.fecha_nacimiento)) > 18 AND (d.id_distribuidor, d.
     GROUP BY id_distribuidor, id_departamento
     HAVING count(*) >= 30)
 GROUP BY c.nombre_ciudad;
+
+--Ejercicio 2
+--Considere la base de Voluntarios del Práctico 3 y resuelva las siguientes consultas (pueden Involucrar anidamiento y/o agrupamiento).
+
+--2.1. Muestre, para cada institución, su nombre y la cantidad de voluntarios que realizan aportes. Ordene el resultado por nombre de institución.
+
+SELECT DISTINCT i.nombre_institucion, count(v.horas_aportadas)
+FROM unc_esq_voluntario.institucion i
+    INNER JOIN unc_esq_voluntario.voluntario v ON v.id_institucion = i.id_institucion
+GROUP BY i.nombre_institucion
+ORDER BY  i.nombre_institucion ASC;
+
+--2.2. Determine la cantidad de coordinadores en cada país, agrupados por nombre de país y nombre de continente. Etiquete la primer columna como 'Número de coordinadores'
+
+SELECT p.nombre_pais, c.nombre_continente, count(v.id_coordinador) AS "Numero de coordinadores"
+FROM unc_esq_voluntario.voluntario v
+    INNER JOIN unc_esq_voluntario.institucion i ON v.id_institucion = i.id_institucion
+    INNER JOIN unc_esq_voluntario.direccion d ON i.id_direccion = d.id_direccion
+    INNER JOIN unc_esq_voluntario.pais p ON d.id_pais = p.id_pais
+    INNER JOIN unc_esq_voluntario.continente c ON p.id_continente = c.id_continente
+GROUP BY p.nombre_pais, c.nombre_continente;
+
+--2.3. Escriba una consulta para mostrar el apellido, nombre y fecha de nacimiento de cualquier voluntario que trabaje en la misma institución que el Sr. de apellido Zlotkey.
+--Excluya del resultado a Zlotkey.
+
+SELECT v.apellido, v.nombre, v.fecha_nacimiento
+FROM unc_esq_voluntario.voluntario v
+WHERE v.id_institucion = (SELECT v2.id_institucion
+                          FROM unc_esq_voluntario.voluntario v2
+                          WHERE v2.apellido LIKE 'Zlotkey') AND v.apellido NOT LIKE 'Zlotkey';
+
+--2.4. Cree una consulta para mostrar los números de voluntarios y los apellidos de todos los voluntarios cuya cantidad de horas aportadas sea mayor que la media de las horas aportadas.
+--Ordene los resultados por horas aportadas en orden ascendente.
+
+SELECT v.nro_voluntario, v.apellido
+FROM unc_esq_voluntario.voluntario v
+WHERE v.horas_aportadas > (SELECT  avg(v2.horas_aportadas)
+                           FROM unc_esq_voluntario.voluntario v2)
+ORDER BY v.horas_aportadas;
+
+/*Ejercicio 3
+
+Dada la siguiente tabla y basándose en el esquema de películas,*/
+
+CREATE TABLE DistribuidorNac
+(
+id_distribuidor numeric(5,0) NOT NULL,
+nombre character varying(80) NOT NULL,
+direccion character varying(120) NOT NULL,
+telefono character varying(20),
+nro_inscripcion numeric(8,0) NOT NULL,
+encargado character varying(60) NOT NULL,
+id_distrib_mayorista numeric(5,0),
+CONSTRAINT pk_distribuidorNac PRIMARY KEY (id_distribuidor)
+);
+
+/*3.1 Se solicita llenarla con la información correspondiente a los datos completos de todos los distribuidores nacionales.*/
+INSERT INTO distribuidorNac (id_distribuidor, nombre, direccion, telefono, nro_inscripcion, encargado, id_distrib_mayorista,codigo_pais)
+VALUES (5, 'Test1', 'Seinfield 743', 181274, 515, 'Mark', NULL, 'AR');
+
+/*3.2 Agregar a la definición de la tabla DistribuidorNac, el campo codigo_pais que indica el código de país del distribuidor mayorista que atiende a cada distribuidor
+nacional.(codigo_pais character varying(5) NULL)*/
+
+ALTER TABLE DistribuidorNac
+ADD COLUMN codigo_pais character varying(5) NULL;
+
+/*3.3. Para todos los registros de la tabla DistribuidorNac, llenar el nuevo campo codigo_pais con el valor correspondiente existente en la tabla Internacional.*/
+
+UPDATE DistribuidorNac
+SET codigo_pais = i.codigo_pais
+FROM unc_esq_peliculas.internacional i
+WHERE distribuidornac.id_distribuidor = i.id_distribuidor;
+
+/*3.4. Eliminar de la tabla DistribuidorNac los registros que no tienen asociado un distribuidor mayorista.*/
+
+DELETE FROM DistribuidorNac
+WHERE id_distrib_mayorista IS NULL;
